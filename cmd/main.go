@@ -1,6 +1,7 @@
 package main
 
 import (
+	db2 "go_final_project/internal/db"
 	"log"
 	"net/http"
 	"os"
@@ -17,6 +18,9 @@ func main() {
 	if port == "" {
 		port = "7540"
 	}
+
+	db := db2.SetupDB()
+	defer db.Close()
 
 	// Установка директории для статических файлов
 	webDir := "./web"
