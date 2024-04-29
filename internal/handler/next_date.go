@@ -18,12 +18,12 @@ func NextDate(now time.Time, dateString string, repeat string) (string, error) {
 		return "", fmt.Errorf("неверный формат даты: %s", dateString)
 	}
 
-	// Если дата уже прошла, начинаем отсчет от сегодняшнего дня
+	// Проверяем, прошла ли уже исходная дата
 	if date.Before(now) {
+		// Если дата прошла, начинаем считать от сегодняшнего дня
 		date = now
 	}
 
-	// Обработка повторения
 	switch {
 	case strings.HasPrefix(repeat, "d "):
 		days, err := strconv.Atoi(strings.TrimSpace(repeat[2:]))
@@ -31,10 +31,11 @@ func NextDate(now time.Time, dateString string, repeat string) (string, error) {
 			return "", fmt.Errorf("неверный интервал дней")
 		}
 		// Добавляем дни, пока не получим дату в будущем
-		for date.Before(now) {
-			date = date.AddDate(0, 0, days)
+		nextDate := date.AddDate(0, 0, days)
+		for nextDate.Before(now) {
+			nextDate = nextDate.AddDate(0, 0, days)
 		}
-		return date.Format("20060102"), nil
+		return nextDate.Format("20060102"), nil
 
 	default:
 		return "", fmt.Errorf("неподдерживаемый формат повтора")

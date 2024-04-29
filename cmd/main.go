@@ -59,6 +59,9 @@ func main() {
 		handler.GetTasks(db, w, r)
 	})
 
+	http.HandleFunc("/api/task/done", func(w http.ResponseWriter, r *http.Request) {
+		handler.MarkTaskDone(db, w, r)
+	})
 	log.Printf("Сервер запущен и слушает порт %s", port)
 
 	err := http.ListenAndServe(":"+port, nil)

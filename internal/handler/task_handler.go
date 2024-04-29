@@ -17,8 +17,8 @@ func TaskHandler(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 		UpdateTask(db, w, r)
 
 	case "DELETE":
-		// Здесь будет логика для удаления задачи
+		DeleteTask(db, w, r)
 	default:
-		http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
+		http.Error(w, "Неподдерживаемый HTTP метод", http.StatusMethodNotAllowed)
 	}
 }
