@@ -18,22 +18,28 @@ func NextDate(now time.Time, dateString string, repeat string) (string, error) {
 		return "", fmt.Errorf("неверный формат даты: %s", dateString)
 	}
 
-	// Проверяем, прошла ли уже исходная дата
-	if date.Before(now) {
-		// Если дата прошла, начинаем считать от сегодняшнего дня
-		date = now
-	}
-
 	switch {
 	case strings.HasPrefix(repeat, "d "):
 		days, err := strconv.Atoi(strings.TrimSpace(repeat[2:]))
-		if err != nil || days < 1 {
+		if err != nil || days < 1 || days > 400 {
 			return "", fmt.Errorf("неверный интервал дней")
 		}
-		// Добавляем дни, пока не получим дату в будущем
 		nextDate := date.AddDate(0, 0, days)
-		for nextDate.Before(now) {
+		for nextDate.Before(now) || nextDate.Equal(now) {
 			nextDate = nextDate.AddDate(0, 0, days)
+		}
+		return nextDate.Format("20060102"), nil
+
+	case repeat == "y":
+		nextDate := date.AddDate(1, 0, 0)
+		for nextDate.Before(now) || nextDate.Equal(now) {
+			nextDate = nextDate.AddDate(1, 0, 0)
+		}
+		// Обработка високосного года если исходная дата 29 февраля
+		if date.Month() == time.February && date.Day() == 29 {
+			if nextDate.Month() != time.February || nextDate.Day() != 29 {
+				nextDate = time.Date(nextDate.Year(), time.March, 1, 0, 0, 0, 0, nextDate.Location())
+			}
 		}
 		return nextDate.Format("20060102"), nil
 

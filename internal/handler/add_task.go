@@ -1,9 +1,12 @@
 package handler
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"go_final_project/internal/model"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
@@ -12,41 +15,43 @@ import (
 )
 
 func AddTask(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+	body, _ := ioutil.ReadAll(r.Body)
+	log.Println("Received body:", string(body))
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+
 	var task model.Task
 	decoder := json.NewDecoder(r.Body)
 
 	if err := decoder.Decode(&task); err != nil {
-		http.Error(w, "Error parsing JSON: "+err.Error(), http.StatusBadRequest)
+		sendJsonError(w, fmt.Sprintf("Error parsing JSON: %s", err.Error()), http.StatusBadRequest)
 		return
 	}
-
-	log.Println(1212121212, task)
 
 	if task.Title == "" {
-		http.Error(w, "Не указан заголовок задачи", http.StatusBadRequest)
+		sendJsonError(w, "title required", http.StatusBadRequest)
 		return
 	}
 
-	now := time.Now().Format("20060102")
+	now := time.Now()
+	todayStr := now.Format("20060102")
 	if task.Date == "" {
-		task.Date = now
+		task.Date = todayStr
 	} else {
 		parsedDate, err := time.Parse("20060102", task.Date)
 		if err != nil {
-			http.Error(w, "Дата представлена в неверном формате", http.StatusBadRequest)
+			sendJsonError(w, "invalid date", http.StatusBadRequest)
 			return
 		}
-		if parsedDate.Before(time.Now()) {
+		if parsedDate.Before(now) {
 			if task.Repeat != "" {
-				// Вызов функции NextDate для корректировки даты
-				nextDate, err := NextDate(time.Now(), task.Date, task.Repeat)
+				nextDate, err := NextDate(now, task.Date, task.Repeat)
 				if err != nil {
-					http.Error(w, "Ошибка при вычислении даты по правилу повторения: "+err.Error(), http.StatusBadRequest)
+					sendJsonError(w, fmt.Sprintf("repeat error: %s", err.Error()), http.StatusBadRequest)
 					return
 				}
 				task.Date = nextDate
 			} else {
-				task.Date = now
+				task.Date = todayStr
 			}
 		}
 	}
@@ -54,16 +59,22 @@ func AddTask(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	query := "INSERT INTO scheduler (date, title, comment, repeat) VALUES (?, ?, ?, ?)"
 	res, err := db.Exec(query, task.Date, task.Title, task.Comment, task.Repeat)
 	if err != nil {
-		http.Error(w, "Ошибка добавления задачи: "+err.Error(), http.StatusInternalServerError)
+		sendJsonError(w, fmt.Sprintf("error add task: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 
 	id, err := res.LastInsertId()
 	if err != nil {
-		http.Error(w, "Ошибка получения ID задачи: "+err.Error(), http.StatusInternalServerError)
+		sendJsonError(w, fmt.Sprintf("error get task by ID: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	json.NewEncoder(w).Encode(map[string]int64{"id": id})
+}
+
+func sendJsonError(w http.ResponseWriter, message string, statusCode int) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(map[string]string{"error": message})
 }
