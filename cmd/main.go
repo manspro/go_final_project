@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	db2 "go_final_project/internal/db"
+	"go_final_project/internal/db"
 	"go_final_project/internal/handler"
 	"log"
 	"net/http"
@@ -22,7 +22,7 @@ func main() {
 		port = "7540"
 	}
 
-	db := db2.SetupDB()
+	db := db.SetupDB()
 	defer db.Close()
 
 	// Установка директории для статических файлов
@@ -38,7 +38,7 @@ func main() {
 
 		now, err := time.Parse("20060102", nowStr)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Invalid 'now' date: %s", nowStr), http.StatusBadRequest)
+			http.Error(w, fmt.Sprintf("Невалидная 'now' дата: %s", nowStr), http.StatusBadRequest)
 			return
 		}
 
@@ -49,6 +49,14 @@ func main() {
 		}
 
 		w.Write([]byte(nextDate))
+	})
+
+	http.HandleFunc("/api/task", func(w http.ResponseWriter, r *http.Request) {
+		handler.TaskHandler(db, w, r)
+	})
+
+	http.HandleFunc("/api/tasks", func(w http.ResponseWriter, r *http.Request) {
+		handler.GetTasks(db, w, r)
 	})
 
 	log.Printf("Сервер запущен и слушает порт %s", port)
