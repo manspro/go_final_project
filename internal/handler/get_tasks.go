@@ -17,7 +17,7 @@ func GetTasks(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 
 	query := "SELECT id, date, title, comment, repeat FROM scheduler"
 	if search != "" {
-		date, err := time.Parse("02.01.2006", search)
+		date, err := time.Parse("2.01.2006", search)
 		if err == nil {
 			query += " WHERE date = ?"
 			rows, err = db.Query(query, date.Format("20060102"))
